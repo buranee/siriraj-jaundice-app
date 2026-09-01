@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Neonatal Hyperbilirubinemia Decision Support (All gestational age)</title>
+  
+  <!-- Offline-ready local script tags (Stored in the same directory) -->
+  <script src="aap_tables_exact.js"></script>
+  <script src="chart.js"></script>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #dc2626;
+      --warning-bg: #fffbeb;
+      --warning-border: #fde68a;
+      --warning-text: #92400e;
+      --success: #16a34a;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      line-height: 1.5;
+    }
+    @media (min-width: 768px) {
+      body { padding: 24px; }
+    }
+    .app-header {
+      max-width: 1200px;
+      margin: 0 auto 16px auto;
+    }
+    .app-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--text);
+      margin: 0;
+    }
+    .app-subtitle {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 2px 0 0 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 950px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    @media (min-width: 768px) {
+      .card { padding: 20px; }
+    }
+    h2 { 
+      margin-top: 0; 
+      font-size: 1.15rem; 
+      font-weight: 700;
+      color: var(--text); 
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      margin-bottom: 14px;
+    }
+    .form-group { margin-bottom: 14px; }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .input-row { display: flex; gap: 8px; }
+    /* Font size >= 16px prevents iOS Safari auto-zoom on focus */
+    input[type="number"], input[type="datetime-local"] {
+      width: 100%;
+      min-height: 42px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 16px;
+      color: var(--text);
+      background: #fff;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    .age-preview {
+      background: var(--primary-light);
+      border: 1px solid #dbeafe;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-top: 6px;
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 0.82rem;
+      color: var(--text);
+      background: #f8fafc;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .checkbox-group input { 
+      margin-top: 3px; 
+      width: 18px; 
+      height: 18px;
+      accent-color: var(--primary);
+    }
+    button.btn-primary {
+      width: 100%;
+      min-height: 44px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.15s;
+    }
+    button.btn-primary:hover { background: var(--primary-hover); }
+    
+    /* 14-Day Guidance Banners */
+    .notice-banner {
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 14px;
+    }
+    .warning-alert {
+      display: none;
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      border-left: 4px solid var(--warning-text);
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--warning-text);
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 14px;
+    }
+
+    /* Results Metrics */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 640px) {
+      .results-grid { grid-template-columns: 1fr; }
+    }
+    .metric-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      border-left: 4px solid var(--primary);
+    }
+    .metric-card.age-card { border-left-color: #64748b; }
+    .metric-card.exchange { border-left-color: var(--danger); }
+    .metric-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+    .metric-value { font-size: 1.3rem; font-weight: 800; margin: 2px 0; color: var(--text); }
+    .metric-status { font-size: 0.78rem; font-weight: 700; }
+    .status-under { color: var(--success); }
+    .status-over { color: var(--danger); }
+    
+    .chart-container {
+      position: relative;
+      height: 380px;
+      width: 100%;
+    }
+    @media (max-width: 480px) {
+      .chart-container { height: 280px; }
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: #e2e8f0;
+      margin-bottom: 10px;
+    }
+
+    /* References Accordion */
+    .references-section {
+      max-width: 1200px;
+      margin: 20px auto 0 auto;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .references-section details {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .references-section summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .references-section ol {
+      margin: 8px 0 0 0;
+      padding-left: 20px;
+    }
+    .references-section li { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-title">Neonatal Hyperbilirubinemia Decision Support</div>
+  <div class="app-subtitle">Neonatal Unit, Department of Pediatrics, Siriraj Hospital, Thailand</div>
+</header>
+
+<div class="container">
+  <!-- Input Panel -->
+  <div class="card">
+    <h2>Patient Parameters</h2>
+    
+    <div class="form-group">
+      <label>Gestational Age at Birth</label>
+      <div class="input-row">
+        <input type="number" id="ga_weeks" min="20" max="42" placeholder="Weeks" value="34" inputmode="numeric" oninput="calculateAndRender()">
+        <input type="number" id="ga_days" min="0" max="6" placeholder="Days" value="2" inputmode="numeric" oninput="calculateAndRender()">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Date & Time of Birth</label>
+      <input type="datetime-local" id="dob" onchange="calculateAndRender()">
+    </div>
+
+    <div class="form-group">
+      <label>Measurement Date & Time</label>
+      <input type="datetime-local" id="measure_time" onchange="calculateAndRender()">
+      <div class="age-preview" id="age_preview">Postnatal Age: -- hours</div>
+    </div>
+
+    <div class="form-group">
+      <label>Total Bilirubin (TSB / TcB)</label>
+      <div class="input-row">
+        <input type="number" id="tsb_value" step="0.1" min="0" max="40" placeholder="mg/dL" value="9.5" inputmode="decimal" oninput="calculateAndRender()">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="checkbox-group">
+        <input type="checkbox" id="neuro_risk" onchange="calculateAndRender()">
+        <label for="neuro_risk">
+          Neurotoxicity Risk Factors Present<br>
+          <small>(Hemolysis/DAT+, G6PD, Sepsis, Albumin &lt;3.0 g/dL, Instability)</small>
+        </label>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="calculateAndRender()">Recalculate</button>
+  </div>
+
+  <!-- Results & Plot Panel -->
+  <div class="card">
+    <div class="notice-banner">
+      📌 <strong>Protocol Scope:</strong> Guideline decision support extends up to 14 days of age (336 hours).
+    </div>
+
+    <div id="prolonged_warning" class="warning-alert">
+      ⚠️ <strong>Postnatal Age &gt; 14 Days:</strong> Decision thresholds are capped at 14 days of age. For infants with prolonged jaundice (≥2–3 weeks), measure direct/conjugated bilirubin to assess for cholestasis.
+    </div>
+
+    <div id="protocol_badge" class="badge">Modified Consensus Guideline</div>
+    
+    <div class="results-grid">
+      <!-- Age Metric Card -->
+      <div class="metric-card age-card">
+        <div class="metric-title">Age at Sampling</div>
+        <div class="metric-value" id="age_metric_val">-- h</div>
+        <div class="metric-status" id="age_metric_sub">-- d -- h</div>
+      </div>
+
+      <!-- Phototherapy Metric Card -->
+      <div class="metric-card">
+        <div class="metric-title">Phototherapy Threshold</div>
+        <div class="metric-value" id="pt_val">-- mg/dL</div>
+        <div class="metric-status" id="pt_status">--</div>
+      </div>
+
+      <!-- Exchange Transfusion Metric Card -->
+      <div class="metric-card exchange">
+        <div class="metric-title">Exchange Threshold</div>
+        <div class="metric-value" id="et_val">-- mg/dL</div>
+        <div class="metric-status" id="et_status">--</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="biliChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- References Section -->
+<footer class="references-section">
+  <details>
+    <summary>Clinical Guidelines & References</summary>
+    <ol>
+      <li><strong>Stavis RL, Guida JD.</strong> Hyperbilirubinemia in premature infants &lt;35 weeks' gestation: A chronologic age format for graphing consensus-based recommendations. <em>J Perinatol</em>. 2026.</li>
+      <li><strong>Kemper AR, Newman TB, Slaughter JL, et al.</strong> Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation. <em>Pediatrics</em>. 2022;150(3):e2022058859.</li>
+      <li><strong>Maisels MJ, Watchko JF, Bhutani VK, Stevenson DK.</strong> An approach to the management of hyperbilirubinemia in the preterm infant less than 35 weeks of gestation. <em>J Perinatol</em>. 2012;32(9):660-664.</li>
+    </ol>
+  </details>
+</footer>
+
+<script>
+const QUAD_PT_35 = { q1: -0.0007571, q2: 0.1918640, q3: 4.7006108 };
+const QUAD_ET_35 = { q1: -0.0006185, q2: 0.1434654, q3: 13.0019108 };
+
+let chartInstance = null;
+
+// Initialize Default DOB (48h ago) and Measurement (Now)
+const now = new Date();
+const pastDOB = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+document.getElementById('dob').value = pastDOB.toISOString().slice(0, 16);
+document.getElementById('measure_time').value = now.toISOString().slice(0, 16);
+
+function getConsensusThreshold(pma, hasRisk, type) {
+  let tsb = 0;
+  if (type === 'phototherapy') {
+    if (!hasRisk) {
+      if (pma < 27.0) tsb = 6.0;
+      else if (pma < 29.0) tsb = 6.0 + 1.0 * (pma - 27.0);
+      else if (pma < 31.0) tsb = 8.0 + 1.0 * (pma - 29.0);
+      else if (pma < 33.0) tsb = 10.0 + 1.0 * (pma - 31.0);
+      else tsb = 12.0 + 1.0 * (pma - 33.0); // Line Segment C
+    } else {
+      if (pma < 27.0) tsb = 5.0;
+      else if (pma < 29.0) tsb = 5.0 + 0.5 * (pma - 27.0);
+      else if (pma < 31.0) tsb = 6.0 + 1.0 * (pma - 29.0);
+      else if (pma < 33.0) tsb = 8.0 + 1.0 * (pma - 31.0);
+      else tsb = 10.0 + 1.0 * (pma - 33.0);
+    }
+  } else {
+    if (!hasRisk) {
+      if (pma < 27.0) tsb = 14.0;
+      else if (pma < 29.0) tsb = 14.0;
+      else if (pma < 31.0) tsb = 14.0 + 1.0 * (pma - 29.0);
+      else if (pma < 33.0) tsb = 16.0 + 1.0 * (pma - 31.0);
+      else tsb = 18.0 + 0.5 * (pma - 33.0);
+    } else {
+      if (pma < 27.0) tsb = 11.0;
+      else if (pma < 29.0) tsb = 11.0 + 0.5 * (pma - 27.0);
+      else if (pma < 31.0) tsb = 12.0 + 0.5 * (pma - 29.0);
+      else if (pma < 33.0) tsb = 13.0 + 1.0 * (pma - 31.0);
+      else tsb = 15.0 + 1.0 * (pma - 33.0);
+    }
+  }
+  return tsb;
+}
+
+function calculatePretermThreshold(gaBirth, hourOfLife, hasRisk, type) {
+  // Cap effective age at 14 days (336 hours) for guideline extrapolation
+  const effectiveHours = Math.min(hourOfLife, 336);
+  const pma = gaBirth + (effectiveHours / 168.0);
+  
+  const consensusTsb = getConsensusThreshold(pma, hasRisk, type);
+  
+  // Apply AAP 35-week high-risk quadratic cap for the first 96 hours
+  if (effectiveHours <= 96 && effectiveHours >= 1) {
+    const q = (type === 'phototherapy') ? QUAD_PT_35 : QUAD_ET_35;
+    const aap35Tsb = (q.q1 * Math.pow(effectiveHours, 2)) + (q.q2 * effectiveHours) + q.q3;
+    return Math.min(aap35Tsb, consensusTsb);
+  }
+  
+  return consensusTsb;
+}
+
+function getThreshold(gaBirth, hourOfLife, hasRisk, type) {
+  if (hourOfLife < 1) return null;
+  
+  if (gaBirth < 35.0) {
+    return calculatePretermThreshold(gaBirth, hourOfLife, hasRisk, type);
+  } else {
+    // Lookup AAP dataset if loaded
+    if (typeof AAP_DATA !== 'undefined') {
+      const riskKey = hasRisk ? 'with_risk' : 'no_risk';
+      let gaKey = String(Math.floor(gaBirth));
+      if (type === 'phototherapy' && !hasRisk && gaBirth >= 40) gaKey = "40";
+      if ((hasRisk || type === 'exchange') && gaBirth >= 38) gaKey = "38";
+      const h = Math.min(Math.round(hourOfLife), 336);
+      return AAP_DATA[type][riskKey][gaKey][h];
+    } else {
+      // Fallback model if aap_tables_exact.js is not loaded
+      const q = (type === 'phototherapy') ? QUAD_PT_35 : QUAD_ET_35;
+      const base = (q.q1 * Math.pow(Math.min(hourOfLife, 96), 2)) + (q.q2 * Math.min(hourOfLife, 96)) + q.q3;
+      const gaOffset = (gaBirth - 35) * (type === 'phototherapy' ? 1.0 : 0.8);
+      return base + gaOffset;
+    }
+  }
+}
+
+function calculateAndRender() {
+  const gaWeeks = parseInt(document.getElementById('ga_weeks').value) || 35;
+  const gaDays = parseInt(document.getElementById('ga_days').value) || 0;
+  const gaBirth = gaWeeks + (gaDays / 7.0);
+  const hasRisk = document.getElementById('neuro_risk').checked;
+  const tsbInput = parseFloat(document.getElementById('tsb_value').value);
+  
+  const dobInput = document.getElementById('dob').value;
+  const measureInput = document.getElementById('measure_time').value;
+
+  if (!dobInput || !measureInput) return;
+
+  const dob = new Date(dobInput);
+  const measureTime = new Date(measureInput);
+  
+  const rawHourDiff = (measureTime - dob) / (1000 * 60 * 60);
+
+  if (rawHourDiff <= 0) {
+    document.getElementById('age_preview').innerText = "⚠️ Measurement time must be after birth.";
+    document.getElementById('age_metric_val').innerText = "Invalid";
+    document.getElementById('age_metric_sub').innerText = "Check dates";
+    return;
+  }
+
+  const hourOfLife = Math.max(1, rawHourDiff);
+  const days = Math.floor(hourOfLife / 24);
+  const remHours = Math.floor(hourOfLife % 24);
+
+  // Update Age displays
+  document.getElementById('age_preview').innerText = `Postnatal Age: ${hourOfLife.toFixed(1)} hours (${days}d ${remHours}h)`;
+  document.getElementById('age_metric_val').innerText = `${hourOfLife.toFixed(1)} h`;
+  document.getElementById('age_metric_sub').innerText = `${days} days, ${remHours} hours`;
+
+  // Check 14-day warning alert
+  const warningEl = document.getElementById('prolonged_warning');
+  if (hourOfLife > 336) {
+    warningEl.style.display = 'block';
+  } else {
+    warningEl.style.display = 'none';
+  }
+
+  // Protocol Badge
+  const badge = document.getElementById('protocol_badge');
+  badge.innerText = gaBirth < 35.0 
+    ? `Modified Consensus Guidelines (<35 wk, GA ${gaWeeks}+${gaDays})` 
+    : `AAP 2022 Guidelines (≥35 wk, GA ${gaWeeks}+${gaDays})`;
+
+  // Calculate Discrete Thresholds
+  const ptThresh = getThreshold(gaBirth, hourOfLife, hasRisk, 'phototherapy');
+  const etThresh = getThreshold(gaBirth, hourOfLife, hasRisk, 'exchange');
+
+  if (ptThresh !== null) {
+    document.getElementById('pt_val').innerText = `${ptThresh.toFixed(1)} mg/dL`;
+    const ptDiff = tsbInput - ptThresh;
+    const ptStatus = document.getElementById('pt_status');
+    ptStatus.innerText = ptDiff >= 0 
+      ? `+${ptDiff.toFixed(1)} mg/dL (Above)` 
+      : `${Math.abs(ptDiff).toFixed(1)} mg/dL (Below)`;
+    ptStatus.className = `metric-status ${ptDiff >= 0 ? 'status-over' : 'status-under'}`;
+  }
+
+  if (etThresh !== null) {
+    document.getElementById('et_val').innerText = `${etThresh.toFixed(1)} mg/dL`;
+    const etDiff = tsbInput - etThresh;
+    const etStatus = document.getElementById('et_status');
+    etStatus.innerText = etDiff >= 0 
+      ? `+${etDiff.toFixed(1)} mg/dL (Above)` 
+      : `${Math.abs(etDiff).toFixed(1)} mg/dL (Below)`;
+    etStatus.className = `metric-status ${etDiff >= 0 ? 'status-over' : 'status-under'}`;
+  }
+
+  // Generate Trajectory Series for Chart
+  const maxHours = Math.max(168, Math.min(336, Math.ceil(hourOfLife + 24)));
+  const labels = [];
+  const ptLine = [];
+  const etLine = [];
+
+  for (let h = 1; h <= maxHours; h++) {
+    labels.push(h);
+    ptLine.push(getThreshold(gaBirth, h, hasRisk, 'phototherapy'));
+    etLine.push(getThreshold(gaBirth, h, hasRisk, 'exchange'));
+  }
+
+  renderChart(labels, ptLine, etLine, hourOfLife, tsbInput);
+}
+
+function renderChart(labels, ptLine, etLine, patientHour, patientTsb) {
+  const ctx = document.getElementById('biliChart').getContext('2d');
+  
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Phototherapy Threshold',
+          data: ptLine,
+          borderColor: '#2563eb',
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          pointRadius: 0
+        },
+        {
+          label: 'Exchange Transfusion Threshold',
+          data: etLine,
+          borderColor: '#dc2626',
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          pointRadius: 0
+        },
+        {
+          label: 'Patient Bilirubin',
+          data: [{ x: patientHour, y: patientTsb }],
+          borderColor: '#0f172a',
+          backgroundColor: '#0f172a',
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          showLine: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          type: 'linear',
+          title: { display: true, text: 'Postnatal Age (Hours)' },
+          min: 0
+        },
+        y: {
+          title: { display: true, text: 'Total Bilirubin (mg/dL)' },
+          min: 0,
+          suggestedMax: 22
+        }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} mg/dL at ${ctx.parsed.x.toFixed(0)}h`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+window.onload = calculateAndRender;
+</script>
+</body>
+</html>
