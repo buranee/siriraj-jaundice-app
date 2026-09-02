@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>Neonatal Hyperbilirubinemia Decision Support (All gestational age)</title>
+  <title>Neonatal Hyperbilirubinemia Decision Support (All Gestational Ages)</title>
   
   <!-- Offline-ready local script tags (Stored in the same directory) -->
   <script src="aap_tables_exact.js"></script>
@@ -43,17 +43,33 @@
       max-width: 1200px;
       margin: 0 auto 16px auto;
     }
+    .app-title-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
     .app-title {
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       font-weight: 800;
       color: var(--text);
       margin: 0;
+    }
+    .ga-range-tag {
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      border: 1px solid #c7d2fe;
     }
     .app-subtitle {
       font-size: 0.85rem;
       font-weight: 600;
       color: var(--primary);
-      margin: 2px 0 0 0;
+      margin: 0;
     }
     .container {
       max-width: 1200px;
@@ -93,7 +109,6 @@
       color: var(--text);
     }
     .input-row { display: flex; gap: 8px; }
-    /* Font size >= 16px prevents iOS Safari auto-zoom on focus */
     input[type="number"], input[type="datetime-local"] {
       width: 100%;
       min-height: 42px;
@@ -153,12 +168,12 @@
     }
     button.btn-primary:hover { background: var(--primary-hover); }
     
-    /* 14-Day Guidance Banners */
+    /* Banners & Alerts */
     .notice-banner {
       background: var(--primary-light);
       border-left: 4px solid var(--primary);
-      padding: 8px 12px;
-      font-size: 0.8rem;
+      padding: 9px 12px;
+      font-size: 0.82rem;
       font-weight: 600;
       color: var(--text);
       border-radius: 0 6px 6px 0;
@@ -170,7 +185,7 @@
       border: 1px solid var(--warning-border);
       border-left: 4px solid var(--warning-text);
       padding: 10px 12px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 600;
       color: var(--warning-text);
       border-radius: 0 6px 6px 0;
@@ -210,17 +225,18 @@
     @media (max-width: 480px) {
       .chart-container { height: 280px; }
     }
-    .badge {
+    .protocol-badge {
       display: inline-block;
-      padding: 3px 8px;
+      padding: 4px 10px;
       border-radius: 9999px;
-      font-size: 0.72rem;
+      font-size: 0.75rem;
       font-weight: 700;
-      background: #e2e8f0;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
+    .badge-preterm { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .badge-term { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
 
-    /* References Accordion */
+    /* References */
     .references-section {
       max-width: 1200px;
       margin: 20px auto 0 auto;
@@ -248,7 +264,10 @@
 <body>
 
 <header class="app-header">
-  <div class="app-title">Neonatal Hyperbilirubinemia Decision Support</div>
+  <div class="app-title-row">
+    <h1 class="app-title">Neonatal Hyperbilirubinemia Decision Support</h1>
+    <span class="ga-range-tag">All GAs: 20+0 to 42+6 Weeks</span>
+  </div>
   <div class="app-subtitle">Neonatal Unit, Department of Pediatrics, Siriraj Hospital, Thailand</div>
 </header>
 
@@ -298,15 +317,15 @@
 
   <!-- Results & Plot Panel -->
   <div class="card">
-    <div class="notice-banner">
-      📌 <strong>Protocol Scope:</strong> Guideline decision support extends up to 14 days of age (336 hours).
+    <!-- Dynamic Scope Banner based on GA -->
+    <div id="notice_banner" class="notice-banner">
+      📌 <strong>Protocol Scope:</strong> Initializing...
     </div>
 
-    <div id="prolonged_warning" class="warning-alert">
-      ⚠️ <strong>Postnatal Age &gt; 14 Days:</strong> Decision thresholds are capped at 14 days of age. For infants with prolonged jaundice (≥2–3 weeks), measure direct/conjugated bilirubin to assess for cholestasis.
-    </div>
+    <!-- Dynamic Warning Alert -->
+    <div id="prolonged_warning" class="warning-alert"></div>
 
-    <div id="protocol_badge" class="badge">Modified Consensus Guideline</div>
+    <div id="protocol_badge" class="protocol-badge badge-preterm">Active Protocol: Initializing...</div>
     
     <div class="results-grid">
       <!-- Age Metric Card -->
@@ -361,6 +380,17 @@ const pastDOB = new Date(now.getTime() - (48 * 60 * 60 * 1000));
 document.getElementById('dob').value = pastDOB.toISOString().slice(0, 16);
 document.getElementById('measure_time').value = now.toISOString().slice(0, 16);
 
+// Helper to determine the exact maximum guideline support window
+function getMaxSupportedHours(gaBirth) {
+  if (gaBirth <= 33.0) {
+    // Extends to PMA 35 0/7 weeks for infants <= 33 0/7 weeks GA
+    return (35.0 - gaBirth) * 168.0;
+  } else {
+    // Extends to 14 days (336 hours) for GA >= 33 1/7 wk and AAP >= 35 wk
+    return 336.0;
+  }
+}
+
 function getConsensusThreshold(pma, hasRisk, type) {
   let tsb = 0;
   if (type === 'phototherapy') {
@@ -396,8 +426,8 @@ function getConsensusThreshold(pma, hasRisk, type) {
 }
 
 function calculatePretermThreshold(gaBirth, hourOfLife, hasRisk, type) {
-  // Cap effective age at 14 days (336 hours) for guideline extrapolation
-  const effectiveHours = Math.min(hourOfLife, 336);
+  const maxHours = getMaxSupportedHours(gaBirth);
+  const effectiveHours = Math.min(hourOfLife, maxHours);
   const pma = gaBirth + (effectiveHours / 168.0);
   
   const consensusTsb = getConsensusThreshold(pma, hasRisk, type);
@@ -418,7 +448,7 @@ function getThreshold(gaBirth, hourOfLife, hasRisk, type) {
   if (gaBirth < 35.0) {
     return calculatePretermThreshold(gaBirth, hourOfLife, hasRisk, type);
   } else {
-    // Lookup AAP dataset if loaded
+    // Query AAP dataset
     if (typeof AAP_DATA !== 'undefined') {
       const riskKey = hasRisk ? 'with_risk' : 'no_risk';
       let gaKey = String(Math.floor(gaBirth));
@@ -427,7 +457,7 @@ function getThreshold(gaBirth, hourOfLife, hasRisk, type) {
       const h = Math.min(Math.round(hourOfLife), 336);
       return AAP_DATA[type][riskKey][gaKey][h];
     } else {
-      // Fallback model if aap_tables_exact.js is not loaded
+      // Fallback approximation model
       const q = (type === 'phototherapy') ? QUAD_PT_35 : QUAD_ET_35;
       const base = (q.q1 * Math.pow(Math.min(hourOfLife, 96), 2)) + (q.q2 * Math.min(hourOfLife, 96)) + q.q3;
       const gaOffset = (gaBirth - 35) * (type === 'phototherapy' ? 1.0 : 0.8);
@@ -463,25 +493,47 @@ function calculateAndRender() {
   const hourOfLife = Math.max(1, rawHourDiff);
   const days = Math.floor(hourOfLife / 24);
   const remHours = Math.floor(hourOfLife % 24);
+  const currentPMA = gaBirth + (hourOfLife / 168.0);
+  const maxHours = getMaxSupportedHours(gaBirth);
 
   // Update Age displays
-  document.getElementById('age_preview').innerText = `Postnatal Age: ${hourOfLife.toFixed(1)} hours (${days}d ${remHours}h)`;
+  document.getElementById('age_preview').innerText = `Postnatal Age: ${hourOfLife.toFixed(1)} h (${days}d ${remHours}h) | PMA: ${currentPMA.toFixed(1)} wk`;
   document.getElementById('age_metric_val').innerText = `${hourOfLife.toFixed(1)} h`;
-  document.getElementById('age_metric_sub').innerText = `${days} days, ${remHours} hours`;
+  document.getElementById('age_metric_sub').innerText = `${days}d ${remHours}h (PMA ${currentPMA.toFixed(1)}w)`;
 
-  // Check 14-day warning alert
+  // Update Dynamic Scope Notice Banner
+  const noticeBanner = document.getElementById('notice_banner');
+  if (gaBirth <= 33.0) {
+    const totalDays = Math.round((35.0 - gaBirth) * 7);
+    noticeBanner.innerHTML = `📌 <strong>Protocol Scope:</strong> For birth GA &le; 33+0 wk, decision support extends to <strong>PMA 35+0 weeks</strong> (postnatal age of <strong>${totalDays} days</strong> / ${Math.round(maxHours)} hours).`;
+  } else if (gaBirth < 35.0) {
+    noticeBanner.innerHTML = `📌 <strong>Protocol Scope:</strong> For birth GA &ge; 33+1 wk, Line Segment C is linearly extrapolated to <strong>14 days of age</strong> (336 hours).`;
+  } else {
+    noticeBanner.innerHTML = `📌 <strong>Protocol Scope:</strong> AAP 2022 clinical practice guidelines provide decision support up to <strong>14 days of age</strong> (336 hours).`;
+  }
+
+  // Handle Dynamic Warning Alert
   const warningEl = document.getElementById('prolonged_warning');
-  if (hourOfLife > 336) {
+  if (hourOfLife > maxHours) {
     warningEl.style.display = 'block';
+    if (gaBirth <= 33.0) {
+      warningEl.innerHTML = `⚠️ <strong>Postnatal Age Exceeds PMA 35+0 Weeks:</strong> Patient has reached postmenstrual age &ge; 35+0 weeks (${Math.round((35.0 - gaBirth) * 7)} days). Decision thresholds are capped at PMA 35+0. For infants with persistent jaundice, evaluate direct/conjugated bilirubin to assess for cholestasis.`;
+    } else {
+      warningEl.innerHTML = `⚠️ <strong>Postnatal Age &gt; 14 Days:</strong> Decision thresholds are capped at 14 days of age (336 hours). For infants with prolonged jaundice (&ge; 2–3 weeks), evaluate direct/conjugated bilirubin to assess for cholestasis.`;
+    }
   } else {
     warningEl.style.display = 'none';
   }
 
-  // Protocol Badge
+  // Dynamic Protocol Badge
   const badge = document.getElementById('protocol_badge');
-  badge.innerText = gaBirth < 35.0 
-    ? `Modified Consensus Guidelines (<35 wk, GA ${gaWeeks}+${gaDays})` 
-    : `AAP 2022 Guidelines (≥35 wk, GA ${gaWeeks}+${gaDays})`;
+  if (gaBirth < 35.0) {
+    badge.innerText = `Active: Preterm Protocol (<35 wk GA) — Birth GA: ${gaWeeks}+${gaDays} wk`;
+    badge.className = 'protocol-badge badge-preterm';
+  } else {
+    badge.innerText = `Active: AAP 2022 Protocol (≥35 wk GA) — Birth GA: ${gaWeeks}+${gaDays} wk`;
+    badge.className = 'protocol-badge badge-term';
+  }
 
   // Calculate Discrete Thresholds
   const ptThresh = getThreshold(gaBirth, hourOfLife, hasRisk, 'phototherapy');
@@ -507,13 +559,24 @@ function calculateAndRender() {
     etStatus.className = `metric-status ${etDiff >= 0 ? 'status-over' : 'status-under'}`;
   }
 
-  // Generate Trajectory Series for Chart
-  const maxHours = Math.max(168, Math.min(336, Math.ceil(hourOfLife + 24)));
+  // Dynamic Chart Domain Scaling:
+  // Starts at min 168h (7d), expands to 336h (14d), or scales out to accommodate older preterms
+  let maxPlotHours = Math.max(168, Math.min(maxHours, 336));
+  if (hourOfLife > 168 && hourOfLife <= 336) {
+    maxPlotHours = 336;
+  } else if (hourOfLife > 336) {
+    // Scale out dynamically to patient's age + 24 hours (up to max supported age)
+    maxPlotHours = Math.min(maxHours, Math.ceil((hourOfLife + 24) / 24) * 24);
+    if (hourOfLife > maxHours) {
+      maxPlotHours = Math.ceil((hourOfLife + 24) / 24) * 24;
+    }
+  }
+
   const labels = [];
   const ptLine = [];
   const etLine = [];
 
-  for (let h = 1; h <= maxHours; h++) {
+  for (let h = 1; h <= maxPlotHours; h++) {
     labels.push(h);
     ptLine.push(getThreshold(gaBirth, h, hasRisk, 'phototherapy'));
     etLine.push(getThreshold(gaBirth, h, hasRisk, 'exchange'));
