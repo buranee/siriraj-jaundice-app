@@ -466,6 +466,36 @@ function getThreshold(gaBirth, hourOfLife, hasRisk, type) {
   }
 }
 
+
+// Intercepts datetime-local strings and safely normalizes Buddhist years to Gregorian
+function parseSafeDate(dateString) {
+  if (!dateString) return null;
+  
+  // datetime-local strings follow the format: "YYYY-MM-DDThh:mm"
+  // Split the string into components to avoid leap-year rollover bugs
+  const parts = dateString.split(/\D/); 
+  
+  if (parts.length >= 5) {
+    let year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
+    const day = parseInt(parts[2], 10);
+    const hour = parseInt(parts[3], 10);
+    const minute = parseInt(parts[4], 10);
+    
+    // If the browser leaked a Buddhist year (e.g., > 2400), normalize it
+    if (year > 2400) {
+      year -= 543;
+    }
+    
+    return new Date(year, month, day, hour, minute);
+  }
+  
+  // Fallback if the string format is unexpected
+  return new Date(dateString);
+}
+
+
+
 function calculateAndRender() {
   const gaWeeks = parseInt(document.getElementById('ga_weeks').value) || 35;
   const gaDays = parseInt(document.getElementById('ga_days').value) || 0;
@@ -478,8 +508,8 @@ function calculateAndRender() {
 
   if (!dobInput || !measureInput) return;
 
-  const dob = new Date(dobInput);
-  const measureTime = new Date(measureInput);
+  const dob = parseSafeDate(dobInput);
+  const measureTime = parseSafeDate(measureInput);
   
   const rawHourDiff = (measureTime - dob) / (1000 * 60 * 60);
 
